@@ -1,23 +1,23 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
+
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Call Tracker PWA</title>
+<title>Call Tracker Realtime</title>
 
 <link rel="manifest" href="manifest.json">
 
 <meta name="theme-color" content="#007aff">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
 
 <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
 
 <style>
 
 body{
-    font-family:-apple-system,BlinkMacSystemFont,sans-serif;
+    font-family:-apple-system,sans-serif;
     background:#f2f2f7;
     margin:0;
     padding:16px;
@@ -37,8 +37,8 @@ h1{
 
 input,textarea{
     width:100%;
-    padding:12px;
     box-sizing:border-box;
+    padding:12px;
     border-radius:12px;
     border:1px solid #ddd;
     margin-top:8px;
@@ -49,8 +49,8 @@ button{
     border:none;
     border-radius:12px;
     padding:12px 14px;
-    font-size:15px;
     margin-top:8px;
+    font-size:15px;
     cursor:pointer;
 }
 
@@ -75,7 +75,7 @@ button{
     flex-wrap:wrap;
 }
 
-.phone-card{
+.customer-card{
     background:white;
     padding:14px;
     border-radius:18px;
@@ -83,17 +83,17 @@ button{
     box-shadow:0 2px 8px rgba(0,0,0,0.08);
 }
 
-.phone-number{
+.phone{
     font-size:22px;
     font-weight:bold;
 }
 
-.status{
+.info{
     margin-top:8px;
-    padding:6px 10px;
-    border-radius:999px;
-    display:inline-block;
-    font-size:13px;
+    background:#fafafa;
+    border:1px solid #ddd;
+    border-radius:12px;
+    padding:10px;
 }
 
 .called{
@@ -106,44 +106,44 @@ button{
     color:#c0392b;
 }
 
-.info-box{
-    margin-top:8px;
-    background:#fafafa;
-    border:1px solid #ddd;
-    padding:10px;
+.log-box{
+    margin-top:10px;
+    background:#f9f9f9;
     border-radius:12px;
+    padding:10px;
+    font-size:13px;
+    max-height:120px;
+    overflow:auto;
 }
 
 </style>
+
 </head>
 
 <body>
 
-<h1>📞 Call Tracker PWA</h1>
+<h1>📞 Call Tracker Realtime</h1>
 
 <div class="card">
 
-<input type="file"
-id="excelFile"
+<input
+type="file"
 accept=".xlsx,.xls"
-onchange="importExcel(event)">
+onchange="importExcel(event)"
+>
 
-<input type="text"
+<input
+type="text"
 id="searchInput"
-placeholder="🔍 Tìm số điện thoại..."
-oninput="renderList()">
-
-<div class="row">
-<button class="danger" onclick="clearAll()">
-🗑 Xóa tất cả
-</button>
-</div>
+placeholder="🔍 Tìm khách hàng..."
+oninput="renderCustomers()"
+>
 
 <div id="counter"></div>
 
 </div>
 
-<div id="phoneList"></div>
+<div id="customerList"></div>
 
 <script type="module">
 
@@ -155,7 +155,8 @@ import {
   ref,
   set,
   push,
-  onValue
+  onValue,
+  update
 }
 from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
@@ -170,6 +171,7 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
+
 const db = getDatabase(app);
 
 window.db = db;
@@ -177,55 +179,30 @@ window.ref = ref;
 window.set = set;
 window.push = push;
 window.onValue = onValue;
-
-console.log("Firebase Connected");
+window.update = update;
 
 </script>
 
 <script>
 
-let phoneData =
-JSON.parse(localStorage.getItem('phoneData') || '[]');
-
-function saveData(){
-
-    localStorage.setItem(
-        'phoneData',
-        JSON.stringify(phoneData)
-    );
-
-    if(window.db){
-
-        set(
-            ref(db,'customers'),
-            phoneData
-        );
-
-        push(
-            ref(db,'logs'),
-            {
-                action:'update',
-                time:new Date().toLocaleString(),
-                total:phoneData.length
-            }
-        );
-
-    }
-
-}
+let customers = {};
 
 function normalizePhone(phone){
-    return phone.replace(/[^0-9]/g,'');
+
+    return String(phone)
+    .replace(/[^0-9]/g,'');
+
 }
 
-function importExcel(event){
+async function importExcel(event){
 
     const file = event.target.files[0];
+
     if(!file) return;
 
     const reader = new FileReader();
 
-    reader.onload = function(e){
+    reader.onload = async function(e){
 
         const data =
         new Uint8Array(e.target.result);
@@ -241,63 +218,54 @@ function importExcel(event){
         const json =
         XLSX.utils.sheet_to_json(sheet);
 
-        json.forEach(row=>{
+        for(const row of json){
 
-            const customerName =
-            row.TEN_KHTT ||
-            row.TEN_KH ||
-            '';
+            const customerId =
+            row.MA_KHTT || '';
 
-            const address =
-            row.DCHI_KHTT ||
-            row.DCHI_KH ||
-            '';
+            if(!customerId) continue;
 
-            const amount =
-            row.SO_TIEN ||
-            row.SOTIEN ||
-            row.CONGNO ||
-            '0';
+            const customer = {
 
-            const phoneRaw =
-            row.SO_DIENTHOAI ||
-            row.SDT ||
-            row.DIENTHOAI ||
-            '';
+                customerId,
 
-            if(!phoneRaw) return;
+                customerName:
+                row.TEN_KHTT || '',
 
-            const normalized =
-            normalizePhone(
-                String(phoneRaw)
+                address:
+                row.DCHI_KHTT || '',
+
+                phone:
+                normalizePhone(
+                    row.SO_DIENTHOAI || ''
+                ),
+
+                amount:
+                row.SO_TIEN ||
+                row.CONGNO ||
+                0,
+
+                note:'',
+
+                called:false,
+
+                lastCall:'',
+
+                logs:[]
+
+            };
+
+            update(
+                ref(
+                    db,
+                    'customers/'+customerId
+                ),
+                customer
             );
 
-            if(
-                !phoneData.find(
-                    p=>p.phone===normalized
-                )
-            ){
+        }
 
-                phoneData.push({
-
-                    phone:normalized,
-                    customerName,
-                    address,
-                    amount,
-                    note:'',
-                    called:false,
-                    time:null
-
-                });
-
-            }
-
-        });
-
-        saveData();
-        renderList();
-
-        alert('Đã import dữ liệu');
+        alert('Import hoàn tất');
 
     };
 
@@ -305,22 +273,54 @@ function importExcel(event){
 
 }
 
-function callNumber(phone,index){
+function addLog(customerId,action){
 
-    phoneData[index].called = true;
-
-    phoneData[index].time =
+    const time =
     new Date().toLocaleString();
 
-    saveData();
-    renderList();
+    push(
+        ref(
+            db,
+            'customers/'+customerId+'/logs'
+        ),
+        {
+            action,
+            time
+        }
+    );
+
+}
+
+function callCustomer(customerId,phone){
+
+    update(
+        ref(
+            db,
+            'customers/'+customerId
+        ),
+        {
+            called:true,
+            lastCall:new Date()
+            .toLocaleString()
+        }
+    );
+
+    addLog(
+        customerId,
+        '📞 Đã gọi'
+    );
 
     window.location.href =
     'tel:'+phone;
 
 }
 
-function sendSMS(phone,name){
+function sendSMS(customerId,phone,name){
+
+    addLog(
+        customerId,
+        '💬 Gửi SMS'
+    );
 
     const msg =
     encodeURIComponent(
@@ -332,124 +332,152 @@ function sendSMS(phone,name){
 
 }
 
-function updateNote(index,value){
+function updateNote(customerId,value){
 
-    phoneData[index].note = value;
-
-    saveData();
-
-}
-
-function toggleCalled(index){
-
-    phoneData[index].called =
-    !phoneData[index].called;
-
-    phoneData[index].time =
-    new Date().toLocaleString();
-
-    saveData();
-
-    renderList();
-
-}
-
-function deletePhone(index){
-
-    phoneData.splice(index,1);
-
-    saveData();
-
-    renderList();
-
-}
-
-function clearAll(){
-
-    if(confirm('Xóa toàn bộ dữ liệu?')){
-
-        phoneData = [];
-
-        saveData();
-
-        renderList();
-
-    }
-
-}
-
-function renderList(){
-
-    const list =
-    document.getElementById('phoneList');
-
-    const search =
-    document.getElementById('searchInput')
-    .value
-    .trim();
-
-    list.innerHTML = '';
-
-    const filtered =
-    phoneData.filter(item=>
-        item.phone.includes(search)
+    update(
+        ref(
+            db,
+            'customers/'+customerId
+        ),
+        {
+            note:value
+        }
     );
 
-    filtered.forEach(item=>{
+    addLog(
+        customerId,
+        '📝 Cập nhật ghi chú'
+    );
 
-        const realIndex =
-        phoneData.indexOf(item);
+}
+
+function renderCustomers(){
+
+    const list =
+    document.getElementById(
+        'customerList'
+    );
+
+    const search =
+    document.getElementById(
+        'searchInput'
+    )
+    .value
+    .toLowerCase();
+
+    list.innerHTML='';
+
+    const arr =
+    Object.values(customers);
+
+    const filtered =
+    arr.filter(c=>
+
+        String(c.customerName)
+        .toLowerCase()
+        .includes(search)
+
+        ||
+
+        String(c.phone)
+        .includes(search)
+
+    );
+
+    filtered.forEach(c=>{
 
         const div =
         document.createElement('div');
 
-        div.className='phone-card';
+        div.className =
+        'customer-card';
+
+        let logsHtml='';
+
+        if(c.logs){
+
+            logsHtml =
+            Object.values(c.logs)
+            .reverse()
+            .map(log=>`
+
+            <div>
+            ${log.time}
+            -
+            ${log.action}
+            </div>
+
+            `)
+            .join('');
+
+        }
 
         div.innerHTML = `
 
-        <div class="phone-number">
-        ${item.phone}
+        <div class="phone">
+
+        ${c.phone}
+
         </div>
 
-        <div class="info-box">
-        👤 <b>${item.customerName||''}</b>
+        <div class="info">
+
+        🆔 ${c.customerId}
+
         </div>
 
-        <div class="info-box">
-        📍 ${item.address||''}
+        <div class="info">
+
+        👤 ${c.customerName}
+
         </div>
 
-        <div class="info-box">
-        💰 ${item.amount||0}
+        <div class="info">
+
+        📍 ${c.address}
+
+        </div>
+
+        <div class="info">
+
+        💰 ${c.amount}
+
         </div>
 
         <div class="
-        status
-        ${item.called ? 'called':'not-called'}
-        ">
+        info
+        ${c.called
+            ?
+            'called'
+            :
+            'not-called'
+        }">
 
-        ${item.called ? 'Đã gọi':'Chưa gọi'}
+        ${c.called
+            ?
+            '✔ Đã gọi'
+            :
+            '❌ Chưa gọi'
+        }
 
         </div>
 
-        ${
-            item.time
-            ?
-            `<div>🕒 ${item.time}</div>`
-            :
-            ''
-        }
+        <div class="info">
+
+        🕒 ${c.lastCall || ''}
+
+        </div>
 
         <textarea
         placeholder="📝 Ghi chú"
         onchange="
         updateNote(
-            ${realIndex},
+            '${c.customerId}',
             this.value
         )"
         >
 
-        ${item.note || ''}
+        ${c.note || ''}
 
         </textarea>
 
@@ -458,10 +486,11 @@ function renderList(){
         <button
         class="primary"
         onclick="
-        callNumber(
-            '${item.phone}',
-            ${realIndex}
-        )">
+        callCustomer(
+            '${c.customerId}',
+            '${c.phone}'
+        )
+        ">
 
         📲 Gọi
 
@@ -471,24 +500,27 @@ function renderList(){
         class="success"
         onclick="
         sendSMS(
-            '${item.phone}',
-            '${item.customerName}'
-        )">
+            '${c.customerId}',
+            '${c.phone}',
+            '${c.customerName}'
+        )
+        ">
 
         💬 SMS
 
         </button>
 
-        <button
-        class="danger"
-        onclick="
-        deletePhone(
-            ${realIndex}
-        )">
+        </div>
 
-        🗑 Xóa
+        <div class="log-box">
 
-        </button>
+        <b>
+        🕒 Nhật ký
+        </b>
+
+        <br><br>
+
+        ${logsHtml}
 
         </div>
 
@@ -498,60 +530,40 @@ function renderList(){
 
     });
 
-    const called =
-    phoneData.filter(
-        p=>p.called
-    ).length;
-
-    document.getElementById('counter')
+    document.getElementById(
+        'counter'
+    )
     .innerHTML =
 
     `
-    Tổng:
-    ${phoneData.length}
-
-    | Đã gọi:
-    ${called}
+    Tổng khách:
+    ${filtered.length}
     `;
 
 }
 
-if(window.db){
+onValue(
+    ref(db,'customers'),
+    snapshot=>{
 
-    onValue(
-        ref(db,'customers'),
-        (snapshot)=>{
+        customers =
+        snapshot.val() || {};
 
-            const data =
-            snapshot.val();
+        renderCustomers();
 
-            if(data){
+    }
+);
 
-                phoneData = data;
+if(
+    'serviceWorker'
+    in navigator
+){
 
-                localStorage.setItem(
-                    'phoneData',
-                    JSON.stringify(phoneData)
-                );
-
-                renderList();
-
-            }
-
-        }
-    );
+    navigator
+    .serviceWorker
+    .register('sw.js');
 
 }
-
-if('serviceWorker' in navigator){
-
-    navigator.serviceWorker.register(
-        'sw.js'
-    );
-
-}
-
-renderList();
 
 </script>
 

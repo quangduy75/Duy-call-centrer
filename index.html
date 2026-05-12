@@ -1,23 +1,23 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Call Tracker Realtime</title>
+<title>Call Tracker PWA</title>
 
 <link rel="manifest" href="manifest.json">
 
 <meta name="theme-color" content="#007aff">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 
 <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
 
 <style>
 
 body{
-    font-family:-apple-system,sans-serif;
+    font-family:-apple-system,BlinkMacSystemFont,sans-serif;
     background:#f2f2f7;
     margin:0;
     padding:16px;
@@ -37,8 +37,8 @@ h1{
 
 input,textarea{
     width:100%;
-    box-sizing:border-box;
     padding:12px;
+    box-sizing:border-box;
     border-radius:12px;
     border:1px solid #ddd;
     margin-top:8px;
@@ -49,8 +49,8 @@ button{
     border:none;
     border-radius:12px;
     padding:12px 14px;
-    margin-top:8px;
     font-size:15px;
+    margin-top:8px;
     cursor:pointer;
 }
 
@@ -75,7 +75,7 @@ button{
     flex-wrap:wrap;
 }
 
-.customer-card{
+.phone-card{
     background:white;
     padding:14px;
     border-radius:18px;
@@ -83,17 +83,17 @@ button{
     box-shadow:0 2px 8px rgba(0,0,0,0.08);
 }
 
-.phone{
+.phone-number{
     font-size:22px;
     font-weight:bold;
 }
 
-.info{
+.status{
     margin-top:8px;
-    background:#fafafa;
-    border:1px solid #ddd;
-    border-radius:12px;
-    padding:10px;
+    padding:6px 10px;
+    border-radius:999px;
+    display:inline-block;
+    font-size:13px;
 }
 
 .called{
@@ -106,44 +106,44 @@ button{
     color:#c0392b;
 }
 
-.log-box{
-    margin-top:10px;
-    background:#f9f9f9;
-    border-radius:12px;
+.info-box{
+    margin-top:8px;
+    background:#fafafa;
+    border:1px solid #ddd;
     padding:10px;
-    font-size:13px;
-    max-height:120px;
-    overflow:auto;
+    border-radius:12px;
 }
 
 </style>
-
 </head>
 
 <body>
 
-<h1>📞 Call Tracker Realtime</h1>
+<h1>📞 Call Tracker PWA</h1>
 
 <div class="card">
 
-<input
-type="file"
+<input type="file"
+id="excelFile"
 accept=".xlsx,.xls"
-onchange="importExcel(event)"
->
+onchange="importExcel(event)">
 
-<input
-type="text"
+<input type="text"
 id="searchInput"
-placeholder="🔍 Tìm khách hàng..."
-oninput="renderCustomers()"
->
+placeholder="🔍 Tìm số điện thoại..."
+oninput="renderList()">
+
+<div class="row">
+<button class="danger" onclick="clearAll()">
+🗑 Xóa tất cả
+</button>
+</div>
 
 <div id="counter"></div>
 
 </div>
 
-<div id="customerList"></div>
+<div id="phoneList"></div>
 
 <script type="module">
 
@@ -155,8 +155,7 @@ import {
   ref,
   set,
   push,
-  onValue,
-  update
+  onValue
 }
 from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
@@ -171,7 +170,6 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-
 const db = getDatabase(app);
 
 window.db = db;
@@ -179,30 +177,55 @@ window.ref = ref;
 window.set = set;
 window.push = push;
 window.onValue = onValue;
-window.update = update;
+
+console.log("Firebase Connected");
 
 </script>
 
 <script>
 
-let customers = {};
+let phoneData =
+JSON.parse(localStorage.getItem('phoneData') || '[]');
 
-function normalizePhone(phone){
+function saveData(){
 
-    return String(phone)
-    .replace(/[^0-9]/g,'');
+    localStorage.setItem(
+        'phoneData',
+        JSON.stringify(phoneData)
+    );
+
+    if(window.db){
+
+        set(
+            ref(db,'customers'),
+            phoneData
+        );
+
+        push(
+            ref(db,'logs'),
+            {
+                action:'update',
+                time:new Date().toLocaleString(),
+                total:phoneData.length
+            }
+        );
+
+    }
 
 }
 
-async function importExcel(event){
+function normalizePhone(phone){
+    return phone.replace(/[^0-9]/g,'');
+}
+
+function importExcel(event){
 
     const file = event.target.files[0];
-
     if(!file) return;
 
     const reader = new FileReader();
 
-    reader.onload = async function(e){
+    reader.onload = function(e){
 
         const data =
         new Uint8Array(e.target.result);
@@ -218,54 +241,63 @@ async function importExcel(event){
         const json =
         XLSX.utils.sheet_to_json(sheet);
 
-        for(const row of json){
+        json.forEach(row=>{
 
-            const customerId =
-            row.MA_KHTT || '';
+            const customerName =
+            row.TEN_KHTT ||
+            row.TEN_KH ||
+            '';
 
-            if(!customerId) continue;
+            const address =
+            row.DCHI_KHTT ||
+            row.DCHI_KH ||
+            '';
 
-            const customer = {
+            const amount =
+            row.SO_TIEN ||
+            row.SOTIEN ||
+            row.CONGNO ||
+            '0';
 
-                customerId,
+            const phoneRaw =
+            row.SO_DIENTHOAI ||
+            row.SDT ||
+            row.DIENTHOAI ||
+            '';
 
-                customerName:
-                row.TEN_KHTT || '',
+            if(!phoneRaw) return;
 
-                address:
-                row.DCHI_KHTT || '',
-
-                phone:
-                normalizePhone(
-                    row.SO_DIENTHOAI || ''
-                ),
-
-                amount:
-                row.SO_TIEN ||
-                row.CONGNO ||
-                0,
-
-                note:'',
-
-                called:false,
-
-                lastCall:'',
-
-                logs:[]
-
-            };
-
-            update(
-                ref(
-                    db,
-                    'customers/'+customerId
-                ),
-                customer
+            const normalized =
+            normalizePhone(
+                String(phoneRaw)
             );
 
-        }
+            if(
+                !phoneData.find(
+                    p=>p.phone===normalized
+                )
+            ){
 
-        alert('Import hoàn tất');
+                phoneData.push({
+
+                    phone:normalized,
+                    customerName,
+                    address,
+                    amount,
+                    note:'',
+                    called:false,
+                    time:null
+
+                });
+
+            }
+
+        });
+
+        saveData();
+        renderList();
+
+        alert('Đã import dữ liệu');
 
     };
 
@@ -273,54 +305,22 @@ async function importExcel(event){
 
 }
 
-function addLog(customerId,action){
+function callNumber(phone,index){
 
-    const time =
+    phoneData[index].called = true;
+
+    phoneData[index].time =
     new Date().toLocaleString();
 
-    push(
-        ref(
-            db,
-            'customers/'+customerId+'/logs'
-        ),
-        {
-            action,
-            time
-        }
-    );
-
-}
-
-function callCustomer(customerId,phone){
-
-    update(
-        ref(
-            db,
-            'customers/'+customerId
-        ),
-        {
-            called:true,
-            lastCall:new Date()
-            .toLocaleString()
-        }
-    );
-
-    addLog(
-        customerId,
-        '📞 Đã gọi'
-    );
+    saveData();
+    renderList();
 
     window.location.href =
     'tel:'+phone;
 
 }
 
-function sendSMS(customerId,phone,name){
-
-    addLog(
-        customerId,
-        '💬 Gửi SMS'
-    );
+function sendSMS(phone,name){
 
     const msg =
     encodeURIComponent(
@@ -332,152 +332,124 @@ function sendSMS(customerId,phone,name){
 
 }
 
-function updateNote(customerId,value){
+function updateNote(index,value){
 
-    update(
-        ref(
-            db,
-            'customers/'+customerId
-        ),
-        {
-            note:value
-        }
-    );
+    phoneData[index].note = value;
 
-    addLog(
-        customerId,
-        '📝 Cập nhật ghi chú'
-    );
+    saveData();
 
 }
 
-function renderCustomers(){
+function toggleCalled(index){
+
+    phoneData[index].called =
+    !phoneData[index].called;
+
+    phoneData[index].time =
+    new Date().toLocaleString();
+
+    saveData();
+
+    renderList();
+
+}
+
+function deletePhone(index){
+
+    phoneData.splice(index,1);
+
+    saveData();
+
+    renderList();
+
+}
+
+function clearAll(){
+
+    if(confirm('Xóa toàn bộ dữ liệu?')){
+
+        phoneData = [];
+
+        saveData();
+
+        renderList();
+
+    }
+
+}
+
+function renderList(){
 
     const list =
-    document.getElementById(
-        'customerList'
-    );
+    document.getElementById('phoneList');
 
     const search =
-    document.getElementById(
-        'searchInput'
-    )
+    document.getElementById('searchInput')
     .value
-    .toLowerCase();
+    .trim();
 
-    list.innerHTML='';
-
-    const arr =
-    Object.values(customers);
+    list.innerHTML = '';
 
     const filtered =
-    arr.filter(c=>
-
-        String(c.customerName)
-        .toLowerCase()
-        .includes(search)
-
-        ||
-
-        String(c.phone)
-        .includes(search)
-
+    phoneData.filter(item=>
+        item.phone.includes(search)
     );
 
-    filtered.forEach(c=>{
+    filtered.forEach(item=>{
+
+        const realIndex =
+        phoneData.indexOf(item);
 
         const div =
         document.createElement('div');
 
-        div.className =
-        'customer-card';
-
-        let logsHtml='';
-
-        if(c.logs){
-
-            logsHtml =
-            Object.values(c.logs)
-            .reverse()
-            .map(log=>`
-
-            <div>
-            ${log.time}
-            -
-            ${log.action}
-            </div>
-
-            `)
-            .join('');
-
-        }
+        div.className='phone-card';
 
         div.innerHTML = `
 
-        <div class="phone">
-
-        ${c.phone}
-
+        <div class="phone-number">
+        ${item.phone}
         </div>
 
-        <div class="info">
-
-        🆔 ${c.customerId}
-
+        <div class="info-box">
+        👤 <b>${item.customerName||''}</b>
         </div>
 
-        <div class="info">
-
-        👤 ${c.customerName}
-
+        <div class="info-box">
+        📍 ${item.address||''}
         </div>
 
-        <div class="info">
-
-        📍 ${c.address}
-
-        </div>
-
-        <div class="info">
-
-        💰 ${c.amount}
-
+        <div class="info-box">
+        💰 ${item.amount||0}
         </div>
 
         <div class="
-        info
-        ${c.called
-            ?
-            'called'
-            :
-            'not-called'
-        }">
+        status
+        ${item.called ? 'called':'not-called'}
+        ">
 
-        ${c.called
+        ${item.called ? 'Đã gọi':'Chưa gọi'}
+
+        </div>
+
+        ${
+            item.time
             ?
-            '✔ Đã gọi'
+            `<div>🕒 ${item.time}</div>`
             :
-            '❌ Chưa gọi'
+            ''
         }
-
-        </div>
-
-        <div class="info">
-
-        🕒 ${c.lastCall || ''}
-
-        </div>
 
         <textarea
         placeholder="📝 Ghi chú"
         onchange="
         updateNote(
-            '${c.customerId}',
+            ${realIndex},
             this.value
         )"
         >
 
-        ${c.note || ''}
+        ${item.note || ''}
 
         </textarea>
 
@@ -486,11 +458,10 @@ function renderCustomers(){
         <button
         class="primary"
         onclick="
-        callCustomer(
-            '${c.customerId}',
-            '${c.phone}'
-        )
-        ">
+        callNumber(
+            '${item.phone}',
+            ${realIndex}
+        )">
 
         📲 Gọi
 
@@ -500,27 +471,24 @@ function renderCustomers(){
         class="success"
         onclick="
         sendSMS(
-            '${c.customerId}',
-            '${c.phone}',
-            '${c.customerName}'
-        )
-        ">
+            '${item.phone}',
+            '${item.customerName}'
+        )">
 
         💬 SMS
 
         </button>
 
-        </div>
+        <button
+        class="danger"
+        onclick="
+        deletePhone(
+            ${realIndex}
+        )">
 
-        <div class="log-box">
+        🗑 Xóa
 
-        <b>
-        🕒 Nhật ký
-        </b>
-
-        <br><br>
-
-        ${logsHtml}
+        </button>
 
         </div>
 
@@ -530,40 +498,60 @@ function renderCustomers(){
 
     });
 
-    document.getElementById(
-        'counter'
-    )
+    const called =
+    phoneData.filter(
+        p=>p.called
+    ).length;
+
+    document.getElementById('counter')
     .innerHTML =
 
     `
-    Tổng khách:
-    ${filtered.length}
+    Tổng:
+    ${phoneData.length}
+
+    | Đã gọi:
+    ${called}
     `;
 
 }
 
-onValue(
-    ref(db,'customers'),
-    snapshot=>{
+if(window.db){
 
-        customers =
-        snapshot.val() || {};
+    onValue(
+        ref(db,'customers'),
+        (snapshot)=>{
 
-        renderCustomers();
+            const data =
+            snapshot.val();
 
-    }
-);
+            if(data){
 
-if(
-    'serviceWorker'
-    in navigator
-){
+                phoneData = data;
 
-    navigator
-    .serviceWorker
-    .register('sw.js');
+                localStorage.setItem(
+                    'phoneData',
+                    JSON.stringify(phoneData)
+                );
+
+                renderList();
+
+            }
+
+        }
+    );
 
 }
+
+if('serviceWorker' in navigator){
+
+    navigator.serviceWorker.register(
+        'sw.js'
+    );
+
+}
+
+renderList();
 
 </script>
 

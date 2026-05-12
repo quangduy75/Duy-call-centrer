@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Call Tracker PWA</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#007aff">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #f2f2f7;
+      margin: 0;
+      padding: 16px;
+      color: #111;
+    }
+
+    h1 {
+      font-size: 24px;
+      margin-bottom: 12px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 18px;
+      padding: 14px;
+      margin-bottom: 14px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+
+    button {
+      border: none;
+      border-radius: 12px;
+      padding: 12px 14px;
+      font-size: 16px;
+      margin-top: 10px;
+      cursor: pointer;
+    }
+
+    .primary {
+      background: #007aff;
+      color: white;
+    }
+
+    .success {
+      background: #34c759;
+      color: white;
+    }
+
+    .danger {
+      background: #ff3b30;
+      color: white;
+    }
+
+    .row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .phone-card {
+      background: white;
+      border-radius: 16px;
+      padding: 12px;
+      margin-bottom: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    }
+
+    .phone-number {
+      font-size: 24px;
+      font-weight: bold;
+      margin-bottom: 8px;
+    }
+
+    .info-box {
+      padding: 12px;
+      border-radius: 12px;
+      background: #fafafa;
+      border: 1px solid #ddd;
+      margin-top: 8px;
+      font-size: 16px;
+    }
+
+    .status {
+      margin-top: 8px;
+      display: inline-block;
+      padding: 5px 10px;
+      border-radius: 999px;
+      font-size: 14px;
+    }
+
+    .called {
+      background: #d1f7dd;
+      color: #147a36;
+    }
+
+    .not-called {
+      background: #ffe4e1;
+      color: #c0392b;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 12px;
+      border-radius: 12px;
+      border: 1px solid #ddd;
+      font-size: 16px;
+      box-sizing: border-box;
+    }
+  </style>
+</head>
+<body>
+
+<h1>📞 Call Tracker iPhone</h1>
+
+<div class="card">
+  <div class="row">
+    <input type="file" id="excelFile" accept=".xlsx,.xls" onchange="importExcel(event)">
+  </div>
+
+  <div id="counter" style="margin-top:10px;color:#666"></div>
+</div>
+
+<div class="card">
+  <input type="text" id="searchInput" placeholder="🔍 Tìm số điện thoại..." oninput="renderList()">
+
+  <div class="row">
+    <button class="danger" onclick="clearAll()">Xóa tất cả</button>
+  </div>
+</div>
+
+<div id="phoneList"></div>
+
+<script>
+let phoneData = JSON.parse(localStorage.getItem('phoneData') || '[]');
+
+function saveData() {
+  localStorage.setItem('phoneData', JSON.stringify(phoneData));
+}
+
+function normalizePhone(phone) {
+  return phone.replace(/[^0-9]/g, '');
+}
+
+function sendSMS(phone, customerName) {
+  const message = encodeURIComponent(
+    'Xin chào ' + (customerName || '') + ', em liên hệ hỗ trợ khách hàng.'
+  );
+
+  window.location.href = `sms:${phone}&body=${message}`;
+}
+
+function callNumber(phone, index) {
+  phoneData[index].called = true;
+  phoneData[index].time = new Date().toLocaleString();
+
+  saveData();
+  if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js');
+}
+
+renderList();
+
+  setTimeout(() => {
+    window.open('tel:' + phone, '_self');
+  }, 100);
+}
+
+function toggleCalled(index) {
+  phoneData[index].called = !phoneData[index].called;
+
+  phoneData[index].time = phoneData[index].called
+    ? new Date().toLocaleString()
+    : null;
+
+  saveData();
+  renderList();
+}
+
+function deletePhone(index) {
+  if(confirm('Xóa số này?')) {
+    phoneData.splice(index, 1);
+    saveData();
+    renderList();
+  }
+}
+
+function renderList() {
+  const list = document.getElementById('phoneList');
+  const search = document.getElementById('searchInput').value.trim();
+
+  list.innerHTML = '';
+
+  const filtered = phoneData.filter(item =>
+    item.phone.includes(search) ||
+    (item.customerName || '').toLowerCase().includes(search.toLowerCase())
+  );
+
+  filtered.forEach(item => {
+    const realIndex = phoneData.indexOf(item);
+
+    const div = document.createElement('div');
+    div.className = 'phone-card';
+
+    div.innerHTML = `
+      <div class="phone-number">${item.phone}</div>
+
+      <div class="info-box">
+        👤 <b>${item.customerName || 'Không có tên'}</b>
+      </div>
+
+      <div class="info-box">
+        📍 ${item.address || 'Không có địa chỉ'}
+      </div>
+
+      <div class="status ${item.called ? 'called' : 'not-called'}">
+        ${item.called ? 'Đã gọi' : 'Chưa gọi'}
+      </div>
+
+      ${item.time ? `<div style="margin-top:6px;color:#666;font-size:13px">🕒 ${item.time}</div>` : ''}
+
+      <div class="row">
+        <button class="primary" onclick="callNumber('${item.phone}', ${realIndex})">
+          📲 Gọi ngay
+        </button>
+
+        <button class="primary" onclick="sendSMS('${item.phone}', '${item.customerName || ''}')">
+          💬 Nhắn tin
+        </button>
+
+        <button class="success" onclick="toggleCalled(${realIndex})">
+          ${item.called ? '↩ Bỏ đánh dấu' : '✔ Đánh dấu'}
+        </button>
+
+        <button class="danger" onclick="deletePhone(${realIndex})">
+          🗑 Xóa
+        </button>
+      </div>
+    `;
+
+    list.appendChild(div);
+  });
+
+  const called = phoneData.filter(p => p.called).length;
+
+  document.getElementById('counter').innerText =
+    `Tổng: ${phoneData.length} | Đã gọi: ${called} | Chưa gọi: ${phoneData.length - called}`;
+}
+
+function clearAll() {
+  if(confirm('Xóa toàn bộ dữ liệu?')) {
+    phoneData = [];
+    saveData();
+    renderList();
+  }
+}
+
+function importExcel(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+
+  reader.onload = function(e) {
+    const data = new Uint8Array(e.target.result);
+    const workbook = XLSX.read(data, { type: 'array' });
+
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    const json = XLSX.utils.sheet_to_json(sheet);
+
+    let count = 0;
+
+    json.forEach(row => {
+      const customerName = row.TEN_KH || row.TEN_KHTT || row.HOTEN || row.NAME || '';
+      const address = row.DCHI_KH || row.DCHI_KHTT || row.DIACHI || row.ADDRESS || '';
+      const phoneRaw = row.SDT || row.SO_DIENTHOAI || row.DIENTHOAI || row.PHONE || '';
+
+      if (!phoneRaw) return;
+
+      const normalized = normalizePhone(String(phoneRaw));
+
+      if (!phoneData.find(p => p.phone === normalized)) {
+        phoneData.push({
+          phone: normalized,
+          customerName,
+          address,
+          called: false,
+          time: null
+        });
+
+        count++;
+      }
+    });
+
+    saveData();
+    renderList();
+
+    alert('Đã import ' + count + ' khách hàng');
+  };
+
+  reader.readAsArrayBuffer(file);
+}
+
+renderList();
+</script>
+
+</body>
+</html>

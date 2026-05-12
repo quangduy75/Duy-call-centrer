@@ -6,7 +6,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Call Tracker Realtime</title>
+<title>Duy Call Center</title>
 
 <link rel="manifest" href="manifest.json">
 
@@ -70,6 +70,19 @@ button{
     color:white;
 }
 
+.customer-card{
+    background:white;
+    padding:14px;
+    border-radius:18px;
+    margin-bottom:12px;
+    box-shadow:0 2px 8px rgba(0,0,0,0.08);
+}
+
+.phone{
+    font-size:22px;
+    font-weight:bold;
+}
+
 .info{
     margin-top:8px;
     background:#fafafa;
@@ -86,19 +99,6 @@ button{
 .not-called{
     background:#ffe4e1;
     color:#c0392b;
-}
-
-.customer-card{
-    background:white;
-    padding:14px;
-    border-radius:18px;
-    margin-bottom:12px;
-    box-shadow:0 2px 8px rgba(0,0,0,0.08);
-}
-
-.phone{
-    font-size:22px;
-    font-weight:bold;
 }
 
 .row{
@@ -123,7 +123,7 @@ button{
 
 <body>
 
-<h1>📞 Call Tracker Realtime</h1>
+<h1>📞 Duy Call Center</h1>
 
 <div class="card">
 
@@ -198,6 +198,10 @@ window.firebaseReady = true;
 
 console.log("Firebase Connected");
 
+window.dispatchEvent(
+    new Event("firebase-ready")
+);
+
 </script>
 
 <script>
@@ -218,7 +222,7 @@ function addLog(customerId,action){
 
     push(
         ref(
-            db,
+            window.db,
             'customers/'+customerId+'/logs'
         ),
         {
@@ -229,7 +233,7 @@ function addLog(customerId,action){
 
 }
 
-async function importExcel(event){
+function importExcel(event){
 
     const file =
     event.target.files[0];
@@ -259,8 +263,7 @@ async function importExcel(event){
         ];
 
         const json =
-        XLSX.utils
-        .sheet_to_json(sheet);
+        XLSX.utils.sheet_to_json(sheet);
 
         json.forEach(row=>{
 
@@ -301,7 +304,7 @@ async function importExcel(event){
 
             update(
                 ref(
-                    db,
+                    window.db,
                     'customers/'+customerId
                 ),
                 customer
@@ -328,7 +331,7 @@ function callCustomer(customerId,phone){
 
     update(
         ref(
-            db,
+            window.db,
             'customers/'+customerId
         ),
         {
@@ -366,7 +369,7 @@ function sendSMS(
     );
 
     window.location.href =
-    `sms:${phone}&body=${msg}`;
+    `sms:${phone}?body=${msg}`;
 
 }
 
@@ -374,7 +377,7 @@ function markNotice(customerId){
 
     update(
         ref(
-            db,
+            window.db,
             'customers/'+customerId
         ),
         {
@@ -399,7 +402,7 @@ function updateNote(
 
     update(
         ref(
-            db,
+            window.db,
             'customers/'+customerId
         ),
         {
@@ -471,11 +474,9 @@ function renderCustomers(){
             .map(log=>`
 
             <div>
-
             ${log.time}
             -
             ${log.action}
-
             </div>
 
             `)
@@ -486,43 +487,29 @@ function renderCustomers(){
         div.innerHTML = `
 
         <div class="phone">
-
-        ${c.phone}
-
+        ${c.phone || ''}
         </div>
 
         <div class="info">
-
-        🆔 ${c.customerId}
-
+        🆔 ${c.customerId || ''}
         </div>
 
         <div class="info">
-
-        👤 ${c.customerName}
-
+        👤 ${c.customerName || ''}
         </div>
 
         <div class="info">
-
-        📍 ${c.address}
-
+        📍 ${c.address || ''}
         </div>
 
         <div class="info">
-
-        💰 ${c.amount}
-
+        💰 ${c.amount || 0}
         </div>
 
         <div class="
         info
-        ${c.called
-            ?
-            'called'
-            :
-            'not-called'
-        }">
+        ${c.called ? 'called':'not-called'}
+        ">
 
         ${c.called
             ?
@@ -534,9 +521,7 @@ function renderCustomers(){
         </div>
 
         <div class="info">
-
         🕒 ${c.lastCall || ''}
-
         </div>
 
         <div class="info">
@@ -552,9 +537,7 @@ function renderCustomers(){
         </div>
 
         <div class="info">
-
         🕒 ${c.noticeTime || ''}
-
         </div>
 
         <textarea
@@ -565,11 +548,7 @@ function renderCustomers(){
             this.value
         )
         "
-        >
-
-        ${c.note || ''}
-
-        </textarea>
+        >${c.note || ''}</textarea>
 
         <div class="row">
 
@@ -616,9 +595,7 @@ function renderCustomers(){
 
         <div class="log-box">
 
-        <b>
-        🕒 Nhật ký
-        </b>
+        <b>🕒 Nhật ký</b>
 
         <br><br>
 
@@ -634,8 +611,7 @@ function renderCustomers(){
 
     document.getElementById(
         'counter'
-    )
-    .innerHTML =
+    ).innerHTML =
 
     `
     Tổng khách:
@@ -644,21 +620,24 @@ function renderCustomers(){
 
 }
 
-setTimeout(()=>{
+window.addEventListener(
+    "firebase-ready",
+    ()=>{
 
-onValue(
-    ref(db,'customers'),
-    snapshot=>{
+        onValue(
+            ref(window.db,'customers'),
+            snapshot=>{
 
-        customers =
-        snapshot.val() || {};
+                customers =
+                snapshot.val() || {};
 
-        renderCustomers();
+                renderCustomers();
+
+            }
+        );
 
     }
 );
-
-},1000);
 
 if(
     'serviceWorker'

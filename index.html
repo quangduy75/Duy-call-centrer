@@ -180,6 +180,11 @@ function toggleCalled(index) {
   renderList();
 }
 
+function updateNote(index, value) {
+  phoneData[index].note = value;
+  saveData();
+}
+
 function deletePhone(index) {
   if(confirm('Xóa số này?')) {
     phoneData.splice(index, 1);
@@ -215,6 +220,12 @@ function renderList() {
       <div class="info-box">
         📍 ${item.address || 'Không có địa chỉ'}
       </div>
+
+      <div class="info-box">
+        💰 ${item.amount || '0'}
+      </div>
+
+      <textarea placeholder="📝 Ghi chú" onchange="updateNote(${realIndex}, this.value)" style="width:100%;margin-top:8px;padding:12px;border-radius:12px;border:1px solid #ddd;box-sizing:border-box;">${item.note || ''}</textarea>
 
       <div class="status ${item.called ? 'called' : 'not-called'}">
         ${item.called ? 'Đã gọi' : 'Chưa gọi'}
@@ -276,6 +287,7 @@ function importExcel(event) {
     json.forEach(row => {
       const customerName = row.TEN_KH || row.TEN_KHTT || row.HOTEN || row.NAME || '';
       const address = row.DCHI_KH || row.DCHI_KHTT || row.DIACHI || row.ADDRESS || '';
+      const amount = row.SO_TIEN || row.SOTIEN || row.TIEN || row.CONGNO || '0';
       const phoneRaw = row.SDT || row.SO_DIENTHOAI || row.DIENTHOAI || row.PHONE || '';
 
       if (!phoneRaw) return;
@@ -287,6 +299,8 @@ function importExcel(event) {
           phone: normalized,
           customerName,
           address,
+          amount,
+          note: '',
           called: false,
           time: null
         });

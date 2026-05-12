@@ -1,656 +1,432 @@
 <!DOCTYPE html>
 <html lang="vi">
-
 <head>
-
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>Duy Call Center</title>
-
-<link rel="manifest" href="manifest.json">
-
-<meta name="theme-color" content="#007aff">
-<meta name="apple-mobile-web-app-capable" content="yes">
-
-<script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
-
-<style>
-
-body{
-    font-family:-apple-system,sans-serif;
-    background:#f2f2f7;
-    margin:0;
-    padding:16px;
-}
-
-h1{
-    font-size:24px;
-}
-
-.card{
-    background:white;
-    padding:14px;
-    border-radius:18px;
-    margin-bottom:14px;
-    box-shadow:0 2px 8px rgba(0,0,0,0.08);
-}
-
-input,textarea{
-    width:100%;
-    box-sizing:border-box;
-    padding:12px;
-    border-radius:12px;
-    border:1px solid #ddd;
-    margin-top:8px;
-    font-size:16px;
-}
-
-button{
-    border:none;
-    border-radius:12px;
-    padding:12px 14px;
-    margin-top:8px;
-    font-size:15px;
-    cursor:pointer;
-}
-
-.primary{
-    background:#007aff;
-    color:white;
-}
-
-.success{
-    background:#34c759;
-    color:white;
-}
-
-.warning{
-    background:#ff9500;
-    color:white;
-}
-
-.customer-card{
-    background:white;
-    padding:14px;
-    border-radius:18px;
-    margin-bottom:12px;
-    box-shadow:0 2px 8px rgba(0,0,0,0.08);
-}
-
-.phone{
-    font-size:22px;
-    font-weight:bold;
-}
-
-.info{
-    margin-top:8px;
-    background:#fafafa;
-    border:1px solid #ddd;
-    border-radius:12px;
-    padding:10px;
-}
-
-.called{
-    background:#d1f7dd;
-    color:#147a36;
-}
-
-.not-called{
-    background:#ffe4e1;
-    color:#c0392b;
-}
-
-.row{
-    display:flex;
-    gap:8px;
-    flex-wrap:wrap;
-}
-
-.log-box{
-    margin-top:10px;
-    background:#f9f9f9;
-    border-radius:12px;
-    padding:10px;
-    font-size:13px;
-    max-height:150px;
-    overflow:auto;
-}
-
-</style>
-
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Duy Call Center - Bản cập nhật ổn định</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#007aff">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, sans-serif;
+            background: #f2f2f7;
+            margin: 0;
+            padding: 16px;
+            padding-bottom: 32px;
+        }
+        h1 {
+            font-size: 28px;
+            font-weight: 600;
+            margin: 0 0 8px 0;
+            background: linear-gradient(135deg, #007aff, #00c6ff);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+        }
+        .card {
+            background: rgba(255,255,255,0.94);
+            backdrop-filter: blur(2px);
+            padding: 16px;
+            border-radius: 24px;
+            margin-bottom: 18px;
+            box-shadow: 0 6px 14px rgba(0,0,0,0.05);
+            border: 0.5px solid rgba(0,0,0,0.05);
+        }
+        input, textarea {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 12px 14px;
+            border-radius: 16px;
+            border: 1px solid #e2e2e8;
+            background: white;
+            margin-top: 10px;
+            font-size: 16px;
+            font-family: inherit;
+            transition: 0.2s;
+        }
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: #007aff;
+            box-shadow: 0 0 0 3px rgba(0,122,255,0.2);
+        }
+        button {
+            border: none;
+            border-radius: 40px;
+            padding: 11px 18px;
+            font-weight: 500;
+            font-size: 15px;
+            cursor: pointer;
+            transition: 0.15s ease;
+            background: #f0f0f4;
+            color: #1c1c1e;
+        }
+        button:active { transform: scale(0.96); }
+        .primary {
+            background: #007aff;
+            color: white;
+            box-shadow: 0 2px 8px rgba(0,122,255,0.3);
+        }
+        .success {
+            background: #34c759;
+            color: white;
+            box-shadow: 0 2px 6px rgba(52,199,89,0.3);
+        }
+        .warning {
+            background: #ff9500;
+            color: white;
+            box-shadow: 0 2px 6px rgba(255,149,0,0.3);
+        }
+        .customer-card {
+            background: white;
+            padding: 18px;
+            border-radius: 26px;
+            margin-bottom: 18px;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.05);
+            border: 0.5px solid rgba(0,0,0,0.03);
+            transition: all 0.2s;
+        }
+        .phone {
+            font-size: 24px;
+            font-weight: 700;
+            background: #f8f9fc;
+            padding: 10px 14px;
+            border-radius: 28px;
+            display: inline-block;
+            margin-bottom: 8px;
+            font-family: monospace;
+        }
+        .info {
+            margin-top: 8px;
+            background: #f8f9fc;
+            border-radius: 18px;
+            padding: 10px 14px;
+            font-size: 14.5px;
+            word-break: break-word;
+        }
+        .called {
+            background: #d9f0e3;
+            color: #1e7b48;
+            font-weight: 500;
+        }
+        .not-called {
+            background: #ffe5e8;
+            color: #c92a2f;
+            font-weight: 500;
+        }
+        .row {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin: 15px 0 10px 0;
+        }
+        .log-box {
+            margin-top: 16px;
+            background: #fef9e6;
+            border-radius: 22px;
+            padding: 12px;
+            font-size: 12.5px;
+            max-height: 170px;
+            overflow-y: auto;
+            border: 1px solid #ffecb3;
+        }
+        #counter {
+            font-size: 15px;
+            font-weight: 500;
+            background: #e9ecef;
+            display: inline-block;
+            padding: 6px 14px;
+            border-radius: 40px;
+            margin-top: 12px;
+            color: #2c3e66;
+        }
+        textarea {
+            font-size: 14px;
+            resize: vertical;
+        }
+        footer {
+            font-size: 12px;
+            text-align: center;
+            color: #8e8e93;
+            margin-top: 20px;
+        }
+        @media (max-width: 550px) {
+            .row button { flex: 1; justify-content: center; display: inline-flex; align-items: center; gap: 6px; }
+            .phone { font-size: 20px; }
+        }
+    </style>
 </head>
-
 <body>
 
-<h1>📞 Duy Call Center</h1>
+<h1>📞 Duy Call Center · Tổng đài thông minh</h1>
 
 <div class="card">
-
-<input
-type="file"
-accept=".xlsx,.xls"
-onchange="importExcel(event)"
->
-
-<input
-type="text"
-id="searchInput"
-placeholder="🔍 Tìm khách hàng..."
-oninput="renderCustomers()"
->
-
-<div id="counter"></div>
-
+    <input type="file" id="excelFileInput" accept=".xlsx, .xls, .csv">
+    <input type="text" id="searchInput" placeholder="🔍 Tìm theo tên, số điện thoại, mã KH..." autocomplete="off">
+    <div id="counter">📊 Đang kết nối...</div>
 </div>
 
 <div id="customerList"></div>
+<footer>⚡ Dữ liệu realtime · Nhật ký tự động lưu</footer>
 
 <script type="module">
+    // ---------- Firebase Import ----------
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getDatabase, ref, update, push, onValue, get } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
-import { initializeApp }
-from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    const firebaseConfig = {
+        apiKey: "AIzaSyDDfKwirzou-RpDjoQF4bhuhBZ9iVL_EAc",
+        authDomain: "task-f3871.firebaseapp.com",
+        databaseURL: "https://task-f3871-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "task-f3871",
+        storageBucket: "task-f3871.firebasestorage.app",
+        messagingSenderId: "624608239682",
+        appId: "1:624608239682:web:fd5b4b2664c0ec918f8ddb"
+    };
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
 
-import {
-    getDatabase,
-    ref,
-    update,
-    push,
-    onValue
-}
-from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+    // Gắn các hàm cần thiết ra window để inline onclick hoạt động
+    window.db = db;
+    window.ref = ref;
+    window.update = update;
+    window.push = push;
+    window.onValue = onValue;
 
-const firebaseConfig = {
+    // ---------- State ----------
+    let customers = {};
 
-  apiKey: "AIzaSyDDfKwirzou-RpDjoQF4bhuhBZ9iVL_EAc",
+    // ---------- Helper ----------
+    function normalizePhone(phone) {
+        if (!phone) return "";
+        return String(phone).replace(/[^0-9]/g, '');
+    }
 
-  authDomain: "task-f3871.firebaseapp.com",
+    function addLog(customerId, action) {
+        if (!customerId) return;
+        push(ref(db, `customers/${customerId}/logs`), {
+            action: action,
+            time: new Date().toLocaleString('vi-VN')
+        }).catch(e => console.warn("Log error:", e));
+    }
 
-  databaseURL:
-  "https://task-f3871-default-rtdb.asia-southeast1.firebasedatabase.app",
+    // Import Excel thông minh: giữ lại called, note, noticePasted, logs cũ
+    async function importExcelToFirebase(file) {
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = async function(e) {
+            try {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                const rows = XLSX.utils.sheet_to_json(sheet);
+                if (!rows.length) {
+                    alert("⚠️ File không có dữ liệu hàng.");
+                    return;
+                }
 
-  projectId: "task-f3871",
+                // Lấy dữ liệu hiện tại từ Firebase để giữ lại trạng thái
+                const snapshot = await get(ref(db, 'customers'));
+                const existingMap = snapshot.val() || {};
+                let importCount = 0;
+                let errorCount = 0;
 
-  storageBucket:
-  "task-f3871.firebasestorage.app",
+                for (const row of rows) {
+                    let customerId = String(row.MA_KHTT || row.MA_KH || row.ID || '').trim();
+                    if (!customerId) {
+                        errorCount++;
+                        continue;
+                    }
+                    const rawPhone = row.SO_DIENTHOAI || row.PHONE || row.SDT || '';
+                    const phoneNorm = normalizePhone(rawPhone);
+                    const customerName = row.TEN_KHTT || row.TEN_KH || row.NAME || 'Khách';
+                    const address = row.DCHI_KHTT || row.ADDRESS || row.DIACHI || '';
+                    let amount = row.SO_TIEN || row.CONGNO || row.AMOUNT || 0;
+                    if (typeof amount === 'string') amount = parseFloat(amount.replace(/,/g, '')) || 0;
 
-  messagingSenderId:
-  "624608239682",
+                    const existing = existingMap[customerId];
+                    // Hợp nhất: chỉ cập nhật thông tin cơ bản, giữ nguyên trạng thái gọi/dán/ghi chú/logs
+                    const mergedCustomer = {
+                        customerId: customerId,
+                        customerName: customerName,
+                        address: address,
+                        phone: phoneNorm,
+                        amount: amount,
+                        note: existing?.note || '',
+                        called: existing?.called === true,
+                        lastCall: existing?.lastCall || '',
+                        noticePasted: existing?.noticePasted === true,
+                        noticeTime: existing?.noticeTime || ''
+                    };
+                    await update(ref(db, `customers/${customerId}`), mergedCustomer);
+                    if (!existing) {
+                        await addLog(customerId, "📥 Import khách hàng mới");
+                    } else {
+                        await addLog(customerId, "🔄 Cập nhật thông tin từ Excel");
+                    }
+                    importCount++;
+                }
+                alert(`✅ Import hoàn tất: ${importCount} khách hàng (bỏ qua ${errorCount} dòng lỗi).`);
+            } catch (err) {
+                console.error(err);
+                alert("❌ Lỗi khi xử lý file: " + err.message);
+            }
+        };
+        reader.onerror = () => alert("Không thể đọc file.");
+        reader.readAsArrayBuffer(file);
+    }
 
-  appId:
-  "1:624608239682:web:fd5b4b2664c0ec918f8ddb"
-
-};
-
-const app =
-initializeApp(firebaseConfig);
-
-const db =
-getDatabase(app);
-
-window.db = db;
-window.ref = ref;
-window.update = update;
-window.push = push;
-window.onValue = onValue;
-
-window.firebaseReady = true;
-
-console.log("Firebase Connected");
-
-window.dispatchEvent(
-    new Event("firebase-ready")
-);
-
-</script>
-
-<script>
-
-let customers = {};
-
-function normalizePhone(phone){
-
-    return String(phone)
-    .replace(/[^0-9]/g,'');
-
-}
-
-function addLog(customerId,action){
-
-    const time =
-    new Date().toLocaleString();
-
-    push(
-        ref(
-            window.db,
-            'customers/'+customerId+'/logs'
-        ),
-        {
-            action,
-            time
+    // ---------- Các hàm tương tác ----------
+    window.callCustomer = function(customerId, phone) {
+        if (!customerId) return;
+        if (!phone || phone.length < 8) {
+            alert("Số điện thoại không hợp lệ.");
+            return;
         }
-    );
-
-}
-
-function importExcel(event){
-
-    const file =
-    event.target.files[0];
-
-    if(!file) return;
-
-    const reader =
-    new FileReader();
-
-    reader.onload =
-    function(e){
-
-        const data =
-        new Uint8Array(
-            e.target.result
-        );
-
-        const workbook =
-        XLSX.read(
-            data,
-            {type:'array'}
-        );
-
-        const sheet =
-        workbook.Sheets[
-            workbook.SheetNames[0]
-        ];
-
-        const json =
-        XLSX.utils.sheet_to_json(sheet);
-
-        json.forEach(row=>{
-
-            const customerId =
-            String(
-                row.MA_KHTT || ''
-            ).trim();
-
-            if(!customerId) return;
-
-            const customer = {
-
-                customerId,
-
-                customerName:
-                row.TEN_KHTT || '',
-
-                address:
-                row.DCHI_KHTT || '',
-
-                phone:
-                normalizePhone(
-                    row.SO_DIENTHOAI || ''
-                ),
-
-                amount:
-                row.SO_TIEN ||
-                row.CONGNO ||
-                0,
-
-                note:'',
-                called:false,
-                lastCall:'',
-                noticePasted:false,
-                noticeTime:''
-
-            };
-
-            update(
-                ref(
-                    window.db,
-                    'customers/'+customerId
-                ),
-                customer
-            );
-
-            addLog(
-                customerId,
-                '📥 Import khách hàng'
-            );
-
-        });
-
-        alert(
-            'Import thành công'
-        );
-
+        update(ref(db, `customers/${customerId}`), {
+            called: true,
+            lastCall: new Date().toLocaleString('vi-VN')
+        }).then(() => {
+            addLog(customerId, "📞 Đã gọi (thực hiện cuộc gọi)");
+            window.location.href = `tel:${phone}`;
+        }).catch(e => alert("Lỗi cập nhật: " + e.message));
     };
 
-    reader.readAsArrayBuffer(file);
-
-}
-
-function callCustomer(customerId,phone){
-
-    update(
-        ref(
-            window.db,
-            'customers/'+customerId
-        ),
-        {
-            called:true,
-            lastCall:
-            new Date()
-            .toLocaleString()
+    window.sendSMS = function(customerId, phone, name) {
+        if (!customerId || !phone) {
+            alert("Không có số điện thoại.");
+            return;
         }
-    );
+        addLog(customerId, "💬 Gửi SMS");
+        const msg = encodeURIComponent(`Xin chào ${name || 'Quý khách'}, Duy Call Center cảm ơn!`);
+        window.location.href = `sms:${phone}?body=${msg}`;
+    };
 
-    addLog(
-        customerId,
-        '📞 Đã gọi'
-    );
+    window.markNotice = function(customerId) {
+        if (!customerId) return;
+        update(ref(db, `customers/${customerId}`), {
+            noticePasted: true,
+            noticeTime: new Date().toLocaleString('vi-VN')
+        }).then(() => addLog(customerId, "📌 Đã dán thông báo"));
+    };
 
-    window.location.href =
-    'tel:'+phone;
+    window.updateNote = function(customerId, noteValue) {
+        if (!customerId) return;
+        update(ref(db, `customers/${customerId}`), { note: noteValue })
+            .then(() => addLog(customerId, "📝 Cập nhật ghi chú"))
+            .catch(console.warn);
+    };
 
-}
+    // ---------- Render danh sách ----------
+    function renderCustomers() {
+        const container = document.getElementById('customerList');
+        const searchTerm = document.getElementById('searchInput')?.value.trim().toLowerCase() || "";
+        if (!container) return;
 
-function sendSMS(
-    customerId,
-    phone,
-    name
-){
+        const customersArray = Object.values(customers);
+        let filtered = customersArray.filter(c => {
+            if (!searchTerm) return true;
+            return (c.customerName || '').toLowerCase().includes(searchTerm) ||
+                   (c.phone || '').includes(searchTerm) ||
+                   (c.customerId || '').toLowerCase().includes(searchTerm);
+        });
+        // Ưu tiên chưa gọi lên đầu
+        filtered.sort((a, b) => (a.called === b.called) ? 0 : a.called ? 1 : -1);
 
-    addLog(
-        customerId,
-        '💬 Gửi SMS'
-    );
+        const counterDiv = document.getElementById('counter');
+        if (counterDiv) counterDiv.innerHTML = `📋 Tổng: ${filtered.length} / ${customersArray.length} khách hàng`;
 
-    const msg =
-    encodeURIComponent(
-        'Xin chào '+name
-    );
-
-    window.location.href =
-    `sms:${phone}?body=${msg}`;
-
-}
-
-function markNotice(customerId){
-
-    update(
-        ref(
-            window.db,
-            'customers/'+customerId
-        ),
-        {
-            noticePasted:true,
-            noticeTime:
-            new Date()
-            .toLocaleString()
-        }
-    );
-
-    addLog(
-        customerId,
-        '📌 Đã dán thông báo'
-    );
-
-}
-
-function updateNote(
-    customerId,
-    value
-){
-
-    update(
-        ref(
-            window.db,
-            'customers/'+customerId
-        ),
-        {
-            note:value
-        }
-    );
-
-    addLog(
-        customerId,
-        '📝 Cập nhật ghi chú'
-    );
-
-}
-
-function renderCustomers(){
-
-    const list =
-    document.getElementById(
-        'customerList'
-    );
-
-    const search =
-    document.getElementById(
-        'searchInput'
-    )
-    .value
-    .toLowerCase();
-
-    list.innerHTML='';
-
-    const arr =
-    Object.values(customers);
-
-    const filtered =
-    arr.filter(c=>
-
-        String(c.customerName)
-        .toLowerCase()
-        .includes(search)
-
-        ||
-
-        String(c.phone)
-        .includes(search)
-
-        ||
-
-        String(c.customerId)
-        .toLowerCase()
-        .includes(search)
-
-    );
-
-    filtered.forEach(c=>{
-
-        const div =
-        document.createElement('div');
-
-        div.className =
-        'customer-card';
-
-        let logsHtml='';
-
-        if(c.logs){
-
-            logsHtml =
-            Object.values(c.logs)
-            .reverse()
-            .map(log=>`
-
-            <div>
-            ${log.time}
-            -
-            ${log.action}
-            </div>
-
-            `)
-            .join('');
-
+        if (filtered.length === 0) {
+            container.innerHTML = `<div class="card" style="text-align:center; color:gray;">🔍 Không tìm thấy khách hàng</div>`;
+            return;
         }
 
-        div.innerHTML = `
-
-        <div class="phone">
-        ${c.phone || ''}
-        </div>
-
-        <div class="info">
-        🆔 ${c.customerId || ''}
-        </div>
-
-        <div class="info">
-        👤 ${c.customerName || ''}
-        </div>
-
-        <div class="info">
-        📍 ${c.address || ''}
-        </div>
-
-        <div class="info">
-        💰 ${c.amount || 0}
-        </div>
-
-        <div class="
-        info
-        ${c.called ? 'called':'not-called'}
-        ">
-
-        ${c.called
-            ?
-            '✔ Đã gọi'
-            :
-            '❌ Chưa gọi'
-        }
-
-        </div>
-
-        <div class="info">
-        🕒 ${c.lastCall || ''}
-        </div>
-
-        <div class="info">
-
-        📌 ${
-            c.noticePasted
-            ?
-            'Đã dán thông báo'
-            :
-            'Chưa dán'
-        }
-
-        </div>
-
-        <div class="info">
-        🕒 ${c.noticeTime || ''}
-        </div>
-
-        <textarea
-        placeholder="📝 Ghi chú"
-        onchange="
-        updateNote(
-            '${c.customerId}',
-            this.value
-        )
-        "
-        >${c.note || ''}</textarea>
-
-        <div class="row">
-
-        <button
-        class="primary"
-        onclick="
-        callCustomer(
-            '${c.customerId}',
-            '${c.phone}'
-        )
-        ">
-
-        📲 Gọi
-
-        </button>
-
-        <button
-        class="success"
-        onclick="
-        sendSMS(
-            '${c.customerId}',
-            '${c.phone}',
-            '${c.customerName}'
-        )
-        ">
-
-        💬 SMS
-
-        </button>
-
-        <button
-        class="warning"
-        onclick="
-        markNotice(
-            '${c.customerId}'
-        )
-        ">
-
-        📌 Dán TB
-
-        </button>
-
-        </div>
-
-        <div class="log-box">
-
-        <b>🕒 Nhật ký</b>
-
-        <br><br>
-
-        ${logsHtml}
-
-        </div>
-
-        `;
-
-        list.appendChild(div);
-
-    });
-
-    document.getElementById(
-        'counter'
-    ).innerHTML =
-
-    `
-    Tổng khách:
-    ${filtered.length}
-    `;
-
-}
-
-window.addEventListener(
-    "firebase-ready",
-    ()=>{
-
-        onValue(
-            ref(window.db,'customers'),
-            snapshot=>{
-
-                customers =
-                snapshot.val() || {};
-
-                renderCustomers();
-
+        container.innerHTML = '';
+        for (const cust of filtered) {
+            // Xử lý logs an toàn
+            let logsHtml = '<div>📭 Chưa có hoạt động</div>';
+            if (cust.logs && typeof cust.logs === 'object') {
+                const logsArray = Object.values(cust.logs);
+                if (logsArray.length) {
+                    logsArray.reverse(); // mới nhất lên đầu
+                    logsHtml = logsArray.map(log => `
+                        <div style="margin-bottom: 5px; border-bottom: 0.5px solid #ffe0a3; padding: 4px 0;">
+                            ⏱️ ${log.time || '??'} — ${log.action || '📋 hành động'}
+                        </div>
+                    `).join('');
+                }
             }
-        );
 
+            const amountFormatted = (cust.amount || 0).toLocaleString('vi-VN') + ' ₫';
+            const card = document.createElement('div');
+            card.className = 'customer-card';
+            card.innerHTML = `
+                <div class="phone">📞 ${cust.phone || 'Chưa có số'}</div>
+                <div class="info">🆔 Mã: ${cust.customerId || '---'}</div>
+                <div class="info">👤 Tên: ${cust.customerName || 'Khách hàng'}</div>
+                <div class="info">📍 Địa chỉ: ${cust.address || 'Chưa cập nhật'}</div>
+                <div class="info">💰 Công nợ: ${amountFormatted}</div>
+                <div class="info ${cust.called ? 'called' : 'not-called'}">
+                    ${cust.called ? '✅ Đã gọi (hoàn thành)' : '⏳ Chưa gọi - Cần liên hệ'}
+                </div>
+                <div class="info">🕒 Lần gọi cuối: ${cust.lastCall || 'Chưa có'}</div>
+                <div class="info">📌 Dán thông báo: ${cust.noticePasted ? '✅ Đã dán' : '❌ Chưa dán'} ${cust.noticeTime ? `(${cust.noticeTime})` : ''}</div>
+                <textarea id="note-${cust.customerId}" class="dynamic-note" placeholder="📝 Ghi chú nội bộ... (tự động lưu)">${cust.note || ''}</textarea>
+                <div class="row">
+                    <button class="primary" onclick="callCustomer('${cust.customerId}', '${cust.phone || ''}')">📲 Gọi</button>
+                    <button class="success" onclick="sendSMS('${cust.customerId}', '${cust.phone || ''}', '${cust.customerName?.replace(/'/g, "\\'") || ''}')">💬 SMS</button>
+                    <button class="warning" onclick="markNotice('${cust.customerId}')">📌 Dán TB</button>
+                </div>
+                <div class="log-box"><b>📜 Nhật ký hoạt động</b><br><br>${logsHtml}</div>
+            `;
+            container.appendChild(card);
+        }
+
+        // Gắn sự kiện lưu ghi chú khi thay đổi
+        document.querySelectorAll('.dynamic-note').forEach(textarea => {
+            const cid = textarea.id.replace('note-', '');
+            textarea.addEventListener('change', function() { window.updateNote(cid, this.value); });
+            textarea.addEventListener('blur', function() { window.updateNote(cid, this.value); });
+        });
     }
-);
 
-if(
-    'serviceWorker'
-    in navigator
-){
+    // ---------- Lắng nghe realtime ----------
+    function startRealtime() {
+        const customersRef = ref(db, 'customers');
+        onValue(customersRef, (snapshot) => {
+            customers = snapshot.val() || {};
+            renderCustomers();
+        }, (error) => {
+            console.error(error);
+            document.getElementById('customerList').innerHTML = `<div class="card" style="color:red;">⚠️ Lỗi kết nối Firebase: ${error.message}</div>`;
+        });
+    }
 
-    navigator
-    .serviceWorker
-    .register('sw.js');
+    // ---------- Khởi tạo sự kiện UI ----------
+    function setupUI() {
+        const fileInput = document.getElementById('excelFileInput');
+        if (fileInput) {
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files[0]) importExcelToFirebase(e.target.files[0]);
+                fileInput.value = ''; // reset để import lại cùng file
+            });
+        }
+        const searchBox = document.getElementById('searchInput');
+        if (searchBox) searchBox.addEventListener('input', () => renderCustomers());
+    }
 
-}
+    // Chạy
+    setupUI();
+    startRealtime();
 
+    // Đăng ký service worker nếu có
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js').catch(err => console.log("SW error:", err));
+    }
+
+    console.log("✅ Ứng dụng đã sẵn sàng, import file giữ nguyên trạng thái cũ.");
 </script>
-
 </body>
 </html>

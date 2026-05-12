@@ -70,30 +70,6 @@ button{
     color:white;
 }
 
-.danger{
-    background:#ff3b30;
-    color:white;
-}
-
-.row{
-    display:flex;
-    gap:8px;
-    flex-wrap:wrap;
-}
-
-.customer-card{
-    background:white;
-    padding:14px;
-    border-radius:18px;
-    margin-bottom:12px;
-    box-shadow:0 2px 8px rgba(0,0,0,0.08);
-}
-
-.phone{
-    font-size:22px;
-    font-weight:bold;
-}
-
 .info{
     margin-top:8px;
     background:#fafafa;
@@ -110,6 +86,25 @@ button{
 .not-called{
     background:#ffe4e1;
     color:#c0392b;
+}
+
+.customer-card{
+    background:white;
+    padding:14px;
+    border-radius:18px;
+    margin-bottom:12px;
+    box-shadow:0 2px 8px rgba(0,0,0,0.08);
+}
+
+.phone{
+    font-size:22px;
+    font-weight:bold;
+}
+
+.row{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
 }
 
 .log-box{
@@ -157,35 +152,51 @@ import { initializeApp }
 from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 
 import {
-  getDatabase,
-  ref,
-  set,
-  push,
-  onValue,
-  update
+    getDatabase,
+    ref,
+    update,
+    push,
+    onValue
 }
 from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
 const firebaseConfig = {
+
   apiKey: "AIzaSyDDfKwirzou-RpDjoQF4bhuhBZ9iVL_EAc",
+
   authDomain: "task-f3871.firebaseapp.com",
-  databaseURL: "https://task-f3871.firebaseio.com",
+
+  databaseURL:
+  "https://task-f3871-default-rtdb.asia-southeast1.firebasedatabase.app",
+
   projectId: "task-f3871",
-  storageBucket: "task-f3871.firebasestorage.app",
-  messagingSenderId: "624608239682",
-  appId: "1:624608239682:web:fd5b4b2664c0ec918f8ddb"
+
+  storageBucket:
+  "task-f3871.firebasestorage.app",
+
+  messagingSenderId:
+  "624608239682",
+
+  appId:
+  "1:624608239682:web:fd5b4b2664c0ec918f8ddb"
+
 };
 
-const app = initializeApp(firebaseConfig);
+const app =
+initializeApp(firebaseConfig);
 
-const db = getDatabase(app);
+const db =
+getDatabase(app);
 
 window.db = db;
 window.ref = ref;
-window.set = set;
+window.update = update;
 window.push = push;
 window.onValue = onValue;
-window.update = update;
+
+window.firebaseReady = true;
+
+console.log("Firebase Connected");
 
 </script>
 
@@ -200,21 +211,47 @@ function normalizePhone(phone){
 
 }
 
+function addLog(customerId,action){
+
+    const time =
+    new Date().toLocaleString();
+
+    push(
+        ref(
+            db,
+            'customers/'+customerId+'/logs'
+        ),
+        {
+            action,
+            time
+        }
+    );
+
+}
+
 async function importExcel(event){
 
-    const file = event.target.files[0];
+    const file =
+    event.target.files[0];
 
     if(!file) return;
 
-    const reader = new FileReader();
+    const reader =
+    new FileReader();
 
-    reader.onload = async function(e){
+    reader.onload =
+    function(e){
 
         const data =
-        new Uint8Array(e.target.result);
+        new Uint8Array(
+            e.target.result
+        );
 
         const workbook =
-        XLSX.read(data,{type:'array'});
+        XLSX.read(
+            data,
+            {type:'array'}
+        );
 
         const sheet =
         workbook.Sheets[
@@ -222,14 +259,17 @@ async function importExcel(event){
         ];
 
         const json =
-        XLSX.utils.sheet_to_json(sheet);
+        XLSX.utils
+        .sheet_to_json(sheet);
 
-        for(const row of json){
+        json.forEach(row=>{
 
             const customerId =
-            row.MA_KHTT || '';
+            String(
+                row.MA_KHTT || ''
+            ).trim();
 
-            if(!customerId) continue;
+            if(!customerId) return;
 
             const customer = {
 
@@ -252,16 +292,10 @@ async function importExcel(event){
                 0,
 
                 note:'',
-
                 called:false,
-
                 lastCall:'',
-
                 noticePasted:false,
-
-                noticeTime:'',
-
-                logs:[]
+                noticeTime:''
 
             };
 
@@ -273,31 +307,20 @@ async function importExcel(event){
                 customer
             );
 
-        }
+            addLog(
+                customerId,
+                '📥 Import khách hàng'
+            );
 
-        alert('Import hoàn tất');
+        });
+
+        alert(
+            'Import thành công'
+        );
 
     };
 
     reader.readAsArrayBuffer(file);
-
-}
-
-function addLog(customerId,action){
-
-    const time =
-    new Date().toLocaleString();
-
-    push(
-        ref(
-            db,
-            'customers/'+customerId+'/logs'
-        ),
-        {
-            action,
-            time
-        }
-    );
 
 }
 
@@ -310,7 +333,8 @@ function callCustomer(customerId,phone){
         ),
         {
             called:true,
-            lastCall:new Date()
+            lastCall:
+            new Date()
             .toLocaleString()
         }
     );
@@ -325,7 +349,11 @@ function callCustomer(customerId,phone){
 
 }
 
-function sendSMS(customerId,phone,name){
+function sendSMS(
+    customerId,
+    phone,
+    name
+){
 
     addLog(
         customerId,
@@ -351,7 +379,8 @@ function markNotice(customerId){
         ),
         {
             noticePasted:true,
-            noticeTime:new Date()
+            noticeTime:
+            new Date()
             .toLocaleString()
         }
     );
@@ -363,7 +392,10 @@ function markNotice(customerId){
 
 }
 
-function updateNote(customerId,value){
+function updateNote(
+    customerId,
+    value
+){
 
     update(
         ref(
@@ -439,9 +471,11 @@ function renderCustomers(){
             .map(log=>`
 
             <div>
+
             ${log.time}
             -
             ${log.action}
+
             </div>
 
             `)
@@ -529,7 +563,8 @@ function renderCustomers(){
         updateNote(
             '${c.customerId}',
             this.value
-        )"
+        )
+        "
         >
 
         ${c.note || ''}
@@ -573,7 +608,7 @@ function renderCustomers(){
         )
         ">
 
-        📌 Đã dán TB
+        📌 Dán TB
 
         </button>
 
@@ -609,6 +644,8 @@ function renderCustomers(){
 
 }
 
+setTimeout(()=>{
+
 onValue(
     ref(db,'customers'),
     snapshot=>{
@@ -620,6 +657,8 @@ onValue(
 
     }
 );
+
+},1000);
 
 if(
     'serviceWorker'

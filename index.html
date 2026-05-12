@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="vi">
-
 <head>
 
 <meta charset="UTF-8">
@@ -65,11 +64,6 @@ button{
     color:white;
 }
 
-.warning{
-    background:#ff9500;
-    color:white;
-}
-
 .danger{
     background:#ff3b30;
     color:white;
@@ -118,7 +112,7 @@ button{
     border-radius:12px;
     padding:10px;
     font-size:13px;
-    max-height:150px;
+    max-height:120px;
     overflow:auto;
 }
 
@@ -257,10 +251,6 @@ async function importExcel(event){
 
                 lastCall:'',
 
-                noticePasted:false,
-
-                noticeTime:'',
-
                 logs:[]
 
             };
@@ -342,27 +332,6 @@ function sendSMS(customerId,phone,name){
 
 }
 
-function markNotice(customerId){
-
-    update(
-        ref(
-            db,
-            'customers/'+customerId
-        ),
-        {
-            noticePasted:true,
-            noticeTime:new Date()
-            .toLocaleString()
-        }
-    );
-
-    addLog(
-        customerId,
-        '📌 Đã dán thông báo'
-    );
-
-}
-
 function updateNote(customerId,value){
 
     update(
@@ -411,12 +380,6 @@ function renderCustomers(){
         ||
 
         String(c.phone)
-        .includes(search)
-
-        ||
-
-        String(c.customerId)
-        .toLowerCase()
         .includes(search)
 
     );
@@ -505,24 +468,6 @@ function renderCustomers(){
 
         </div>
 
-        <div class="info">
-
-        📌 ${
-            c.noticePasted
-            ?
-            'Đã dán thông báo'
-            :
-            'Chưa dán'
-        }
-
-        </div>
-
-        <div class="info">
-
-        🕒 ${c.noticeTime || ''}
-
-        </div>
-
         <textarea
         placeholder="📝 Ghi chú"
         onchange="
@@ -562,18 +507,6 @@ function renderCustomers(){
         ">
 
         💬 SMS
-
-        </button>
-
-        <button
-        class="warning"
-        onclick="
-        markNotice(
-            '${c.customerId}'
-        )
-        ">
-
-        📌 Đã dán TB
 
         </button>
 

@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Call Tracker PWA</title>
+<title>THÔNG BÁO KHÁC HÀNG</title>
 
 <link rel="manifest" href="manifest.json">
 
@@ -243,6 +243,12 @@ function importExcel(event){
 
         json.forEach(row=>{
 
+            const customerCode =
+            row.MA_KHTT ||
+            row.MA_KH ||
+            row.MAKH ||
+            '';
+
             const customerName =
             row.TEN_KHTT ||
             row.TEN_KH ||
@@ -281,6 +287,7 @@ function importExcel(event){
                 phoneData.push({
 
                     phone:normalized,
+                    customerCode,
                     customerName,
                     address,
                     amount,
@@ -320,11 +327,13 @@ function callNumber(phone,index){
 
 }
 
-function sendSMS(phone,name){
+function sendSMS(phone,name,code,amount){
 
     const msg =
     encodeURIComponent(
-        'Xin chào '+name
+        'Kính gửi '+(name||'')+
+        ' - MãKH '+(code||'')+
+        ', vui lòng thanh toán '+(amount||'0')
     );
 
     window.location.href =
@@ -378,6 +387,13 @@ function clearAll(){
 
 }
 
+function escapeAttr(str){
+    return String(str||'')
+        .replace(/\\/g,'\\\\')
+        .replace(/'/g,"\\'")
+        .replace(/"/g,'&quot;');
+}
+
 function renderList(){
 
     const list =
@@ -409,6 +425,10 @@ function renderList(){
 
         <div class="phone-number">
         ${item.phone}
+        </div>
+
+        <div class="info-box">
+        🆔 <b>${item.customerCode||''}</b>
         </div>
 
         <div class="info-box">
@@ -472,7 +492,9 @@ function renderList(){
         onclick="
         sendSMS(
             '${item.phone}',
-            '${item.customerName}'
+            '${escapeAttr(item.customerName)}',
+            '${escapeAttr(item.customerCode)}',
+            '${escapeAttr(item.amount)}'
         )">
 
         💬 SMS

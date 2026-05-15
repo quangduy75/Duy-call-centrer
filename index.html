@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>THÔNG BÁO KHÁCH HÀNG</title>
+<title>THÔNG BÁO KHÁC HÀNG</title>
 
 <link rel="manifest" href="manifest.json">
 
@@ -90,10 +90,12 @@ button{
 
 .status{
     margin-top:8px;
+    margin-right:6px;
     padding:6px 10px;
     border-radius:999px;
     display:inline-block;
     font-size:13px;
+    cursor:pointer;
 }
 
 .called{
@@ -106,12 +108,28 @@ button{
     color:#c0392b;
 }
 
+.sms-sent{
+    background:#d1e8ff;
+    color:#0a4a8f;
+}
+
+.sms-not-sent{
+    background:#fff4d1;
+    color:#8a6d00;
+}
+
 .info-box{
     margin-top:8px;
     background:#fafafa;
     border:1px solid #ddd;
     padding:10px;
     border-radius:12px;
+}
+
+.amount{
+    font-weight:bold;
+    color:#c0392b;
+    font-size:18px;
 }
 
 </style>
@@ -218,6 +236,22 @@ function normalizePhone(phone){
     return phone.replace(/[^0-9]/g,'');
 }
 
+function formatAmount(value){
+
+    if(value===null||value===undefined||value==='')
+        return '0';
+
+    const num =
+    Number(
+        String(value).replace(/[^0-9.-]/g,'')
+    );
+
+    if(isNaN(num)) return String(value);
+
+    return num.toLocaleString('vi-VN');
+
+}
+
 function importExcel(event){
 
     const file = event.target.files[0];
@@ -293,7 +327,9 @@ function importExcel(event){
                     amount,
                     note:'',
                     called:false,
-                    time:null
+                    time:null,
+                    smsSent:false,
+                    smsTime:null
 
                 });
 
@@ -327,14 +363,22 @@ function callNumber(phone,index){
 
 }
 
-function sendSMS(phone,name,code,amount){
+function sendSMS(phone,name,code,amount,index){
 
     const msg =
     encodeURIComponent(
         'Kính gửi '+(name||'')+
         ' - '+(code||'')+
-        ', vui lòng thanh toán '+(amount||'0')
+        ', vui lòng thanh toán tiền điện '+formatAmount(amount)
     );
+
+    phoneData[index].smsSent = true;
+
+    phoneData[index].smsTime =
+    new Date().toLocaleString();
+
+    saveData();
+    renderList();
 
     window.location.href =
     `sms:${phone}&body=${msg}`;
@@ -355,6 +399,20 @@ function toggleCalled(index){
     !phoneData[index].called;
 
     phoneData[index].time =
+    new Date().toLocaleString();
+
+    saveData();
+
+    renderList();
+
+}
+
+function toggleSms(index){
+
+    phoneData[index].smsSent =
+    !phoneData[index].smsSent;
+
+    phoneData[index].smsTime =
     new Date().toLocaleString();
 
     saveData();
@@ -440,22 +498,43 @@ function renderList(){
         </div>
 
         <div class="info-box">
-        💰 ${item.amount||0}
+        💰 <span class="amount">${formatAmount(item.amount)}</span> đ
         </div>
 
-        <div class="
+        <div>
+
+        <span class="
         status
         ${item.called ? 'called':'not-called'}
-        ">
+        " onclick="toggleCalled(${realIndex})">
 
-        ${item.called ? 'Đã gọi':'Chưa gọi'}
+        ${item.called ? '✓ Đã gọi':'✗ Chưa gọi'}
+
+        </span>
+
+        <span class="
+        status
+        ${item.smsSent ? 'sms-sent':'sms-not-sent'}
+        " onclick="toggleSms(${realIndex})">
+
+        ${item.smsSent ? '✓ Đã nhắn':'✗ Chưa nhắn'}
+
+        </span>
 
         </div>
 
         ${
             item.time
             ?
-            `<div>🕒 ${item.time}</div>`
+            `<div style="font-size:13px;color:#666;margin-top:6px">🕒 Gọi: ${item.time}</div>`
+            :
+            ''
+        }
+
+        ${
+            item.smsTime
+            ?
+            `<div style="font-size:13px;color:#666">💬 SMS: ${item.smsTime}</div>`
             :
             ''
         }
@@ -467,11 +546,7 @@ function renderList(){
             ${realIndex},
             this.value
         )"
-        >
-
-        ${item.note || ''}
-
-        </textarea>
+        >${item.note || ''}</textarea>
 
         <div class="row">
 
@@ -494,7 +569,8 @@ function renderList(){
             '${item.phone}',
             '${escapeAttr(item.customerName)}',
             '${escapeAttr(item.customerCode)}',
-            '${escapeAttr(item.amount)}'
+            '${escapeAttr(item.amount)}',
+            ${realIndex}
         )">
 
         💬 SMS
@@ -525,15 +601,20 @@ function renderList(){
         p=>p.called
     ).length;
 
+    const smsSent =
+    phoneData.filter(
+        p=>p.smsSent
+    ).length;
+
     document.getElementById('counter')
     .innerHTML =
 
     `
-    Tổng:
-    ${phoneData.length}
-
-    | Đã gọi:
-    ${called}
+    <div style="margin-top:10px;font-size:14px">
+    Tổng: <b>${phoneData.length}</b>
+    | Đã gọi: <b>${called}</b>
+    | Đã nhắn: <b>${smsSent}</b>
+    </div>
     `;
 
 }

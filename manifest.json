@@ -1,10 +1,10 @@
 {
-  "name": "Call Tracker",
-  "short_name": "CallTracker",
-  "start_url": "./",
-  "display": "standalone",
-  "background_color": "#ffffff",
+  "name": "Khách Hàng Điện",
+  "short_name": "KH Điện",
   "theme_color": "#007aff",
+  "background_color": "#f2f2f7",
+  "display": "standalone",
+  "start_url": "./",
   "icons": [
     {
       "src": "icon.png",

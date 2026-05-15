@@ -165,7 +165,7 @@ onchange="importExcel(event)">
 
 <input type="text"
 id="searchInput"
-placeholder="🔍 Tìm số điện thoại..."
+placeholder="🔍 Tìm SĐT, mã KH, tên, địa chỉ..."
 oninput="renderList()">
 
 <div class="row">
@@ -551,9 +551,15 @@ function renderList(){
 
     list.innerHTML = '';
 
+    const q = search.toLowerCase();
+
     const filtered =
     phoneData.filter(item=>
-        item.phone.includes(search)
+        !q ||
+        item.phone.includes(q) ||
+        (item.customerCode||'').toLowerCase().includes(q) ||
+        (item.customerName||'').toLowerCase().includes(q) ||
+        (item.address||'').toLowerCase().includes(q)
     );
 
     filtered.forEach(item=>{

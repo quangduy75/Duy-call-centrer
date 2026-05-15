@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>THÔNG BÁO KHÁCH HÀNG</title>
+<title>Khách Hàng Điện</title>
 
 <link rel="manifest" href="manifest.json">
 
@@ -43,6 +43,12 @@ input,textarea{
     border:1px solid #ddd;
     margin-top:8px;
     font-size:16px;
+}
+
+textarea{
+    min-height:80px;
+    font-family:inherit;
+    white-space:pre-wrap;
 }
 
 button{
@@ -132,12 +138,23 @@ button{
     font-size:18px;
 }
 
+.history-box{
+    margin-top:8px;
+    background:#f0f7ff;
+    border:1px solid #cfe2ff;
+    padding:8px 10px;
+    border-radius:10px;
+    font-size:13px;
+    color:#0a4a8f;
+    white-space:pre-wrap;
+}
+
 </style>
 </head>
 
 <body>
 
-<h1>📞 Call Tracker PWA</h1>
+<h1>⚡ Khách Hàng Điện</h1>
 
 <div class="card">
 
@@ -219,16 +236,25 @@ function saveData(){
             phoneData
         );
 
-        push(
-            ref(db,'logs'),
-            {
-                action:'update',
-                time:new Date().toLocaleString(),
-                total:phoneData.length
-            }
-        );
-
     }
+
+}
+
+// Ghi nhật ký riêng cho từng hành động trên Firebase
+function logAction(phone,name,action,detail){
+
+    if(!window.db) return;
+
+    push(
+        ref(db,'logs'),
+        {
+            phone:phone||'',
+            name:name||'',
+            action:action,
+            detail:detail||'',
+            time:new Date().toLocaleString('vi-VN')
+        }
+    );
 
 }
 
@@ -249,6 +275,25 @@ function formatAmount(value){
     if(isNaN(num)) return String(value);
 
     return num.toLocaleString('vi-VN');
+
+}
+
+// Thêm 1 dòng vào lịch sử của khách hàng
+function appendHistory(index,text){
+
+    const time =
+    new Date().toLocaleString('vi-VN');
+
+    const line = `[${time}] ${text}`;
+
+    if(!phoneData[index].history){
+        phoneData[index].history = '';
+    }
+
+    phoneData[index].history =
+    phoneData[index].history
+        ? phoneData[index].history + '\n' + line
+        : line;
 
 }
 
@@ -274,6 +319,8 @@ function importExcel(event){
 
         const json =
         XLSX.utils.sheet_to_json(sheet);
+
+        let added = 0;
 
         json.forEach(row=>{
 
@@ -326,6 +373,7 @@ function importExcel(event){
                     address,
                     amount,
                     note:'',
+                    history:'',
                     called:false,
                     time:null,
                     smsSent:false,
@@ -333,14 +381,17 @@ function importExcel(event){
 
                 });
 
+                added++;
+
             }
 
         });
 
         saveData();
+        logAction('','','IMPORT',`Thêm ${added} khách hàng từ Excel`);
         renderList();
 
-        alert('Đã import dữ liệu');
+        alert('Đã import '+added+' khách hàng');
 
     };
 
@@ -350,38 +401,42 @@ function importExcel(event){
 
 function callNumber(phone,index){
 
-    phoneData[index].called = true;
+    const item = phoneData[index];
 
-    phoneData[index].time =
-    new Date().toLocaleString();
+    item.called = true;
+    item.time = new Date().toLocaleString('vi-VN');
+
+    appendHistory(index,'📲 Đã bấm GỌI');
 
     saveData();
+    logAction(phone,item.customerName,'CALL','Bấm gọi điện');
     renderList();
 
-    window.location.href =
-    'tel:'+phone;
+    window.location.href = 'tel:'+phone;
 
 }
 
 function sendSMS(phone,name,code,amount,index){
 
-    const msg =
-    encodeURIComponent(
+    const item = phoneData[index];
+
+    const msgText =
         'Kính gửi '+(name||'')+
-        ' - '+(code||'')+
-        ', vui lòng thanh toán tiền điện '+formatAmount(amount)
-    );
+        ' - MãKH '+(code||'')+
+        ', vui lòng thanh toán '+formatAmount(amount);
 
-    phoneData[index].smsSent = true;
+    const msg = encodeURIComponent(msgText);
 
-    phoneData[index].smsTime =
-    new Date().toLocaleString();
+    item.smsSent = true;
+    item.smsTime = new Date().toLocaleString('vi-VN');
+
+    appendHistory(index,'💬 Đã bấm SMS - '+formatAmount(amount)+'đ');
 
     saveData();
+    logAction(phone,name,'SMS',msgText);
     renderList();
 
-    window.location.href =
-    `sms:${phone}&body=${msg}`;
+    window.location.href = `sms:${phone}&body=${msg}`;
 
 }
 
@@ -395,38 +450,61 @@ function updateNote(index,value){
 
 function toggleCalled(index){
 
-    phoneData[index].called =
-    !phoneData[index].called;
+    const item = phoneData[index];
 
-    phoneData[index].time =
-    new Date().toLocaleString();
+    item.called = !item.called;
+    item.time = new Date().toLocaleString('vi-VN');
+
+    appendHistory(index,
+        item.called
+        ? '✓ Đánh dấu ĐÃ GỌI (thủ công)'
+        : '✗ Bỏ đánh dấu đã gọi'
+    );
 
     saveData();
-
+    logAction(
+        item.phone,
+        item.customerName,
+        'TOGGLE_CALL',
+        item.called?'Đánh dấu đã gọi':'Bỏ đánh dấu'
+    );
     renderList();
 
 }
 
 function toggleSms(index){
 
-    phoneData[index].smsSent =
-    !phoneData[index].smsSent;
+    const item = phoneData[index];
 
-    phoneData[index].smsTime =
-    new Date().toLocaleString();
+    item.smsSent = !item.smsSent;
+    item.smsTime = new Date().toLocaleString('vi-VN');
+
+    appendHistory(index,
+        item.smsSent
+        ? '✓ Đánh dấu ĐÃ NHẮN (thủ công)'
+        : '✗ Bỏ đánh dấu đã nhắn'
+    );
 
     saveData();
-
+    logAction(
+        item.phone,
+        item.customerName,
+        'TOGGLE_SMS',
+        item.smsSent?'Đánh dấu đã nhắn':'Bỏ đánh dấu'
+    );
     renderList();
 
 }
 
 function deletePhone(index){
 
+    const item = phoneData[index];
+
+    logAction(item.phone,item.customerName,'DELETE','Xóa khách hàng');
+
     phoneData.splice(index,1);
 
     saveData();
-
     renderList();
 
 }
@@ -434,6 +512,8 @@ function deletePhone(index){
 function clearAll(){
 
     if(confirm('Xóa toàn bộ dữ liệu?')){
+
+        logAction('','','CLEAR_ALL','Xóa toàn bộ');
 
         phoneData = [];
 
@@ -450,6 +530,13 @@ function escapeAttr(str){
         .replace(/\\/g,'\\\\')
         .replace(/'/g,"\\'")
         .replace(/"/g,'&quot;');
+}
+
+function escapeHtml(str){
+    return String(str||'')
+        .replace(/&/g,'&amp;')
+        .replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;');
 }
 
 function renderList(){
@@ -486,15 +573,15 @@ function renderList(){
         </div>
 
         <div class="info-box">
-        🆔 <b>${item.customerCode||''}</b>
+        🆔 <b>${escapeHtml(item.customerCode)}</b>
         </div>
 
         <div class="info-box">
-        👤 <b>${item.customerName||''}</b>
+        👤 <b>${escapeHtml(item.customerName)}</b>
         </div>
 
         <div class="info-box">
-        📍 ${item.address||''}
+        📍 ${escapeHtml(item.address)}
         </div>
 
         <div class="info-box">
@@ -524,29 +611,21 @@ function renderList(){
         </div>
 
         ${
-            item.time
+            item.history
             ?
-            `<div style="font-size:13px;color:#666;margin-top:6px">🕒 Gọi: ${item.time}</div>`
-            :
-            ''
-        }
-
-        ${
-            item.smsTime
-            ?
-            `<div style="font-size:13px;color:#666">💬 SMS: ${item.smsTime}</div>`
+            `<div class="history-box">📜 Nhật ký:\n${escapeHtml(item.history)}</div>`
             :
             ''
         }
 
         <textarea
-        placeholder="📝 Ghi chú"
+        placeholder="📝 Ghi chú riêng"
         onchange="
         updateNote(
             ${realIndex},
             this.value
         )"
-        >${item.note || ''}</textarea>
+        >${escapeHtml(item.note)}</textarea>
 
         <div class="row">
 

@@ -416,7 +416,7 @@ function sendSMS(phone,name,code,amount,index){
     const msgText =
         'Kính gửi '+(name||'')+
         ' - '+(code||'')+
-        ', vui lòng thanh toán tiền điện'+formatAmount(amount);
+        ', vui lòng thanh toán tiền điện. Số tiền: '+formatAmount(amount);
 
     const msg = encodeURIComponent(msgText);
 

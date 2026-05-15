@@ -332,7 +332,7 @@ function sendSMS(phone,name,code,amount){
     const msg =
     encodeURIComponent(
         'Kính gửi '+(name||'')+
-        ' - MãKH '+(code||'')+
+        ' - '+(code||'')+
         ', vui lòng thanh toán '+(amount||'0')
     );
 
